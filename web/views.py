@@ -1,18 +1,13 @@
-import json
-import ast
-import pandas as pd
 from django.shortcuts import render
 from splitwise.settings import PRIVATE_KEY
 from .models import User, UserProfile, Receipt
 from django.core.files.storage import FileSystemStorage
-from django.core.files import File
-from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from PIL import Image
-from PIL.ImageOps import exif_transpose
 from pytesseract import pytesseract
-import numpy as np
+import json
+import ast
+import pandas as pd
 import cv2
 import os
 
@@ -32,22 +27,6 @@ def index(request):
         fs = FileSystemStorage()
 
         fs.save(f'media/Receipts/{receipt_title}/raw/{receipt_image.name}', receipt_image)
-
-        # receipt_image_converted = cv2.imread(receipt_image)
-
-        # if receipt_image_converted.size[0] < receipt_image_converted.size[1]:
-        #     resize_factor = round(1000 / receipt_image_converted.size[1], 2)
-        # else:
-        #     resize_factor = round(1000 / receipt_image_converted.size[0], 2)
-        #
-        # new_size = (
-        # int(resize_factor * receipt_image_converted.size[0]), int(resize_factor * receipt_image_converted.size[1]))
-        #
-        # resized_receipt_img = exif_transpose(receipt_image_converted.resize(new_size))
-
-        # resized_receipt_img.save(f'{fs.base_location}media/Receipts/{receipt_title}/raw/converted-{receipt_image.name}')
-
-        # receipt_image_converted.save(f'{fs.base_location}media/Receipts/{receipt_title}/raw/converted-{receipt_image.name}')
 
         converted_receipt_url = f'{fs.base_location}media/Receipts/{receipt_title}/raw/{receipt_image.name}'
 
@@ -88,15 +67,9 @@ def process_receipt(receipt, confidence_threshold=70):
     rectangles_coordination_dict = {}
     fs = FileSystemStorage()
 
-    # raw_receipt = np.array(Image.open(f"{receipt.raw_image_url}"))
     raw_receipt = cv2.imread(f"{receipt.raw_image_url}")
-    # raw_receipt = cv2.imread(f"/home/farzam/Desktop/Samples/today.jpg")
 
     gray = cv2.cvtColor(raw_receipt, cv2.COLOR_BGR2GRAY)
-
-    # denoise = cv2.medianBlur(gray, 5)
-
-    # canny = cv2.Canny(gray, 200, 80)
 
     results = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT, lang='eng', config='--psm 6')
 
@@ -198,3 +171,4 @@ def check_user_private_key(request):
             status = 201
 
         return JsonResponse(data={'private_key_status': status})
+
