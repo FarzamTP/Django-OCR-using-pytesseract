@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    {% block head %}
+    <title>Base</title>
+    {% endblock %}
+
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="بیبلوفیل سایتی برای خرید و فروش کتب دست دوم به صورت آسان و رایگان، با بیبلوفیل کتب دست دوم خود را آسان بفروشید. بیبلوفیل به شما کمک میکند تا کتب موردنیاز خود را تهیه کنید.">
+    <meta name="keywords" content="کتاب, خرید, فروش, دست دوم, درسی, دانشگاهی, کمک درسی">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+</head>
+
+<body>
+<div class="container">
+{% block body %}
+{% endblock %}
+</div>
+</body>
+</html>

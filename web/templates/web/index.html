@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <title>Index</title>
+{% endblock %}
+
+{% block body %}
+    {% if result %}
+        <input type="hidden" value="{{ result }}" id="request_status">
+        {% if result == 200 and receipt %}
+            <h3 style="color: green">Successfully added <a href="/receipt/{{ receipt.pk }}/70">receipt</a>!</h3>
+        {% endif %}
+    {% endif %}
+
+    <div class="container">
+
+        <h4 style="color: green"><i><b>Good News!<br>v2.1 is now available!</b></i></h4>
+
+        <form class="submit_receipt_form" action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="receipt_title">Title:</label><br>
+        <input required type="text" name="receipt_title" id="receipt_title" placeholder="Receipt's Title">
+
+        <br><br>
+
+        <label for="receipt_image" class="form-label">Upload the receipt:</label>
+        <input required type="file" id="receipt_image" class="form-control form-control-sm" name="receipt_image" accept="image/png, image/jpeg, image/jpg">
+
+        <br><br>
+
+        <label for="receipt_contributors">Select Contributors:</label><br>
+        <select name="receipt_contributors" class="form-select form-select-sm mt-3" id="receipt_contributors_select" multiple style="width: 100%">
+            {% for user_profile in user_profiles %}
+                <option value={{ user_profile.id }}>{{ user_profile }}</option>
+            {% endfor %}
+        </select>
+
+        <br><br>
+        <label for="private_key">Private Key:</label>
+        <p>To access the Private Key, please contact me!</p>
+        <input type="text" placeholder="Private Key" name="private_key" id="private_key">
+
+        <br><br>
+        <input type="submit" class="btn btn-primary" value="Create Receipt">
+    </form>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            let image_size = 0;
+            let MAX_IMAGE_SIZE = 300000;
+
+            $('#receipt_image').bind('change', function () {
+                image_size = this.files[0].size;
+                if (image_size > MAX_IMAGE_SIZE) {
+                    alert("Selected image has the size of " + image_size + ", and it's too large to upload!\nMaximum size allowed is " + MAX_IMAGE_SIZE + " bytes.\nPlease select a new file.");
+                }
+            });
+
+            if ($('#request_status').val()) {
+                let status = $('#request_status').val();
+                if (status.toString() === '200') {
+                    let current_url = window.location.origin;
+                    window.location.href = current_url + "/receipt/{{ receipt.pk }}/70"
+                }
+            }
+
+            $('#receipt_title').focusout(function () {
+                let entered_receipt_title = $(this).val();
+                if (entered_receipt_title.indexOf(' ') >= 0) {
+                    alert("Receipt's title cannot contain spaces or special characters.\nPlease rename it.");
+                }
+            });
+
+            $(document).on('submit', 'form.submit_receipt_form', function () {
+                let entered_receipt_title = $('#receipt_title').val();
+                if (entered_receipt_title.indexOf(' ') >= 0) {
+                    alert("Receipt's title cannot contain spaces or special characters.\nPlease rename it.");
+                    return false;
+                } else {
+                    if (image_size > MAX_IMAGE_SIZE) {
+                        alert("Selected image has the size of " + image_size + ", and it's too large to upload!\nPlease select a new file.");
+                        return false;
+                    } else {
+                        alert("Transferring data...\nClick on 'OK' and please wait!");
+                        return true;
+                    }
+                }
+            });
+
+            $('#private_key').focusout(function () {
+                let entered_private_key = $(this).val();
+                $.ajax({
+                    url: 'authenticate_private_key/',
+                    data: {'private_key': entered_private_key},
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function(data) {
+                        let status = data['private_key_status'];
+                        if (status !== 200) {
+                            alert("Private Key couldn't get verified!\nPlease check it and try again.");
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+{% endblock %}

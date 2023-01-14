@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <title>Receipt</title>
+{% endblock %}
+
+{% block body %}
+    <h3><a href="{% url 'index' %}"><b>Back to index</b></a></h3>
+    <h3>Receipt Title: <b>{{ receipt.title }}</b></h3>
+
+    <br>
+    <h3>Contributors:</h3>
+    {% for contributor in receipt.contributors.all %}
+        <h4 class="contributor"><b>{{ contributor.pk }}. {{ contributor }}</b></h4>
+    {% endfor %}
+    <br>
+    <p id="coords_from_server" hidden="hidden">{{ coordination }}</p>
+{#    <input id="ex1" data-slider-id='ex1Slider' type="range" data-slider-min="1" data-slider-max="100" data-slider-step="1" data-slider-value="70"/>#}
+    <label class="form-label" for="customRange1">Confidence:</label>
+    <div class="range">
+        <input type="range" class="form-range" id="confidence_rate" min="1" max="100" value="{{ confidence_rate }}"/>
+        <h5 style="display:inline;">Current Confidence: </h5><b><h5 style="display: inline; " id="confidence_rate_label"></h5></b>
+    </div>
+
+    <br>
+
+
+    <button onclick="submit_rectangles()" class="btn btn-primary">Prepare Costs Sheets!</button>
+
+    <br>
+    <br>
+
+    <div id="items_table"></div>
+
+    <br>
+    <br>
+    <h3>{{ data.csv_data_url }}</h3>
+    <canvas id="myCanvas">Browser doesn't support canvas!</canvas>
+
+    <img class="img-fluid img-thumbnail" id="processed_receipt" src="{{ receipt.processed_image_url }}" usemap="#workmap" alt="receipt_img" >
+
+    <br>
+
+    <script>
+    var rectangles = [];
+    var confidence_rate = $('#confidence_rate').val();
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    var img = document.getElementById('processed_receipt');
+    let available_contributors = "";
+    let available_contributors_pk = [];
+
+    function submit_rectangles() {
+        let filtered_rectangles = [];
+
+        rectangles.forEach(function (rectangle) {
+           if (rectangle.contributors !== "" && rectangle.is_selected) {
+               console.log(rectangle);
+               let dict = {}
+
+               dict['id'] = rectangle.id;
+               dict['contributors'] = rectangle.contributors;
+               filtered_rectangles.push(dict);
+           }
+        });
+
+        if (rectangles.length === 0) {
+            confirm("Please select at least one item price to submit!");
+        }
+        else {
+            let data = JSON.stringify({ 'filtered_rectangles': filtered_rectangles });
+            let payer_pk = prompt("Who paid for it?: \n" + available_contributors + "\ne.g. 4");
+
+            while (!available_contributors_pk.includes(payer_pk)) {
+                alert("Payer ID doesn't exist!");
+                payer_pk = prompt("Who paid for it?: \n" + available_contributors + "\ne.g. 4");
+            }
+
+            $.ajax({
+            url: 'submit_receipt/',
+            type: 'POST',
+            dataType: 'json',
+            data: { 'data': data,
+                    'payer': payer_pk},
+            success: function(data) {
+                console.log("data: " + data.csv_data_url);
+                $("#items_table").empty();
+                $("#items_table").append(data.df);
+                $("#items_table").append("<a href=" + data.csv_data_url + " download><b>Click to download csv file!</b></a>");
+                $(".dataframe").addClass("table table-striped");
+                $(".dataframe").css('text-align','center');
+                $(".dataframe th").css('text-align','center');
+                $(".dataframe tr:last").css('background','green');
+                $(".dataframe tr:last").css('font-weight', 'bold');
+            }
+        });
+        }
+    }
+
+    window.onload = function() {
+        $(".contributor").each(function () {
+            available_contributors = available_contributors + $(this).text() + "\n";
+            available_contributors_pk.push($(this).text().split('. ')[0])
+        });
+
+        $('#confidence_rate').on('change', function() {
+        let new_confidence_rate = $(this).val();
+
+        $('#confidence_rate_label').text(new_confidence_rate + " %");
+
+        let confidence_rate = window.location.href.split('/')[window.location.href.split('/').length - 1];
+
+        let rate_length = confidence_rate.toString().length;
+
+        let new_url = window.location.href.slice(0, -1 * rate_length) + new_confidence_rate;
+
+        location.href = new_url;
+    });
+
+        $('#confidence_rate_label').text(confidence_rate.toString() + " %");
+
+        $(img).hide()
+
+        canvas.setAttribute('height', img.height);
+        canvas.setAttribute('width', img.width);
+
+        {#context.globalAlpha = 0.1;#}
+        context.drawImage(img, 0, 0);
+
+        let coordination = $('#coords_from_server').text();
+
+        const json_obj = JSON.parse(coordination);
+
+        for (let [key, value] of Object.entries(json_obj)) {
+            let rect = {
+                x: Number(value[0]) - 5,
+                y: Number(value[1]) - 5,
+                width: Number(value[2]) + 10,
+                height: Number(value[3]) + 10,
+                id: key,
+                contributors: "",
+                is_selected: false,
+            }
+
+            rectangles.push(rect);
+
+            context.rect(value[0] - 5, value[1] - 5, value[2] + 10, value[3] + 10);
+
+            context.lineWidth = 2;
+            context.strokeStyle = 'green';
+
+            context.stroke();
+        }
+
+        function isIntersect(point, rectangle) {
+            return (Number(rectangle.x) <= Number(point.x) && Number(point.x) <= (Number(rectangle.x) + Number(rectangle.width)) && Number(rectangle.y) <= Number(point.y) && Number(point.y) <= (Number(rectangle.y) + Number(rectangle.height)));
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const pos = {
+                x: Number(e.pageX) - Number(canvas.offsetLeft),
+                y: Number(e.pageY) - Number(canvas.offsetTop)
+            };
+
+            rectangles.forEach(rectangle => {
+                if (isIntersect(pos, rectangle)) {
+
+                    if (rectangle.is_selected) {
+                        rectangle.is_selected = false;
+
+                        context.beginPath();
+
+                        context.lineWidth = 2;
+
+                        context.strokeStyle = 'green';
+
+                        context.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+
+                        context.stroke();
+
+                    } else {
+                        let contributors_pk = prompt("Please enter contributors' ID (separated by ','): \n" + available_contributors + "\ne.g. 1,4,7");
+
+                        if (contributors_pk !== ""){
+                            let all_contributors_exist = true;
+                            contributors_pk.split(',').forEach(function (pk) {
+                                if (!available_contributors_pk.includes(pk)){
+                                    all_contributors_exist = false;
+                                }
+                            });
+
+                            if (all_contributors_exist) {
+                                rectangle.contributors = contributors_pk;
+                                rectangle.is_selected = true;
+
+                                context.beginPath();
+
+                                context.lineWidth = 2;
+
+                                context.strokeStyle = 'red';
+
+                                context.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+
+                                context.stroke();
+                            }
+                            else {
+                                confirm("Contributor's ID doesn't exist!\nPlease enter IDs correctly!");
+                            }
+
+                        } else {
+                            confirm("Please enter contributors' ID!");
+                        }
+                    }
+                }
+
+            });
+        });
+    }
+    </script>
+    <style>
+    </style>
+{% endblock %}
