@@ -10,3 +10,7 @@ Since it's a Django application, you just need to `python manage.py runserver` a
 ## Note
 Since there is a file size limit in the `js` codes, you can modigy it later in the `index.html` file.
 `Private Key` is a key to make sure only authenticated users can upload receipts.
+
+## Disclaimer
+This project is an MVP, and it definitly `NOT READY` to deployment!
+I take absolutely no responsibility!
