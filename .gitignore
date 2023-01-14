@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 splitwise/config.py
+web/migrations/
 
 # C extensions
 *.so
