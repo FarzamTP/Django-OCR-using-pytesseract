@@ -1,4 +1,4 @@
-# Django-OCR-using-pytesseract
+# Receipt OCR using pytesseract hosted on Django
 This is a Django project, which aims to provide a simple front-end for users to upload their receipts photo and get them annotated by pytesseract library.
 
 ## Requirements
